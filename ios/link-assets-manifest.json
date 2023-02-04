@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Qanelas-Light.ttf",
+      "sha1": "6677485bc3c3c533b50c50e1ce3988c8f2daa8bc"
+    },
+    {
+      "path": "assets/fonts/Qanelas-Regular.ttf",
+      "sha1": "b8dbf85596cf08583168833988a7a2eb71b0d904"
+    }
+  ]
+}
