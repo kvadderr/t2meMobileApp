@@ -13,6 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSelector, useDispatch } from 'react-redux';
+import { setFavorite } from '../redux/actions';
 
 //import custom components
 import BottomSheet from '../components/BottomSheet';
@@ -35,10 +36,12 @@ const Client = () => {
 
     //Custom data
     const [operator, setOperator] = useState([]);
+    const [faq, setFAQ] = useState([]);
     const [message, setMessage] = useState('');
     const [amount, setAmount] = useState();
     const [payURL, setPayURL] = useState();
-    const [isLoad, setIsLoad] = useState(false);
+    const [isLoad, setIsLoad] = useState(true);
+    const [loadOperator, setLoadOperator] = useState(false);
 
     const ref = useRef<BottomSheetModal>(null);
     const ref2 = useRef<BottomSheetModal>(null);
@@ -66,7 +69,7 @@ const Client = () => {
             <FavoriteCard item={item} />
         );
     };
-
+    
     useEffect(() => {
 
         navigation.addListener('beforeRemove', (e) => {
@@ -74,21 +77,56 @@ const Client = () => {
         });
 
         getTopOperators();
-        socket.emit('sendMeList', {"userId": user.id});
+        getFAQ();
     }, [])
+
+    useEffect(()=>{
+        console.log('emitted');
+        socket.emit('sendMeList', {"userId": user.id});
+    }, [loadOperator])
 
     
     useEffect(() => {
         _updateOperatorStatus();
+        console.log('update STATUS OPER')
     }, [onlineOperatorList])
 
     _updateOperatorStatus = () => {
+        const newStateArray = [];
+        const favArray = []
         operator.map( item => {
-            if (onlineOperatorList.includes(item.userId)) {
-                console.log('item: ', item);
-                item.status = 'Online';
-            }
+            console.log('onlineOperatorList', onlineOperatorList);
+            console.log('item.userId', item.userId);
+            console.log('some data', Object.values(onlineOperatorList))
+            item.status = 'Offline'
+            Object.keys(onlineOperatorList).forEach(element => {
+                if (onlineOperatorList[element].userId == item.userId) {
+                    item.status = onlineOperatorList[element].status
+                } else {
+                    console.log('noooo')
+                    item.status = 'Offline'
+                }
+            });
+            newStateArray.push(item);
         })
+        console.log('newStateArray', newStateArray)
+        setOperator(newStateArray)
+
+        favorite.map( item => {
+            item.status = 'Offline'
+            Object.keys(onlineOperatorList).forEach(element => {
+                if (onlineOperatorList[element].userId == item.userId) {
+                    item.status = onlineOperatorList[element].status
+                } else {
+                    console.log('noooo')
+                    item.status = 'Offline'
+                }
+            });
+            favArray.push(item);
+        })
+        setOperator(newStateArray)
+        dispatch(setFavorite(favArray));
+
     }
 
     const getTopOperators = async () => {
@@ -96,14 +134,28 @@ const Client = () => {
             const response = await fetch(BACKEND_URL + 'operator/top');
             const json = await response.json();
             setOperator(json);
+            setLoadOperator(true);
+        } catch (error) {
+          console.error(error);
+        }
+    }
+
+    const getFAQ = async () => {
+        try {
+            const response = await fetch(BACKEND_URL + 'faq');
+            const json = await response.json();
+            setFAQ(json);
         } catch (error) {
           console.error(error);
         }
     }
 
     _linkPress = async () => {
-        console.log(payURL);
-        Linking.openURL(payURL).catch(err => console.error('An error occurred', err));
+        Linking.openURL('https://kuku12875.ru:5173/client?login='+user.login+'&pass='+user.isPassword).catch(err => console.error('An error occurred', err));
+    }
+
+    _openLink = async () => {
+        Linking.openURL('https://t.me/Kvadder').catch(err => console.error('An error occurred', err));
     }
 
     _getLink = async () => {
@@ -185,20 +237,19 @@ const Client = () => {
             showsHorizontalScrollIndicator={false}>
             <MenuCard onPress={FAQPresentModalPress} image='0' title='FAQ' desk='we will answer all your questions'/>
             <MenuCard image='1' title='FAST CALL' desk='Звонок свободному оператору'/>
-            <MenuCard onPress={SupportPresentModalPress} image='1' title='SUPPORT' desk='24/7 near you'/>
-            <MenuCard image='0' title='SETTINGS' desk='control this app'/>
+            <MenuCard onPress={SupportPresentModalPress} image='0' title='SUPPORT' desk='24/7 near you'/>
             <MenuCard onPress={_onPressExit} image='1' title='Exit' desk='Exit from this account'/>
+        </ScrollView>  
         </ScrollView>
         <BottomSheet ref={ref}>
-            <FAQ/>
+            <FAQ faq={faq} link ={_openLink}/>
         </BottomSheet>
         <BottomSheet ref={ref2}>
             <Support message={message} setMessage={setMessage} onPress={_sendSupportMsg}/>
         </BottomSheet> 
         <BottomSheet ref={ref3}>
             <Payment amount={amount} setAmount={setAmount} onPress={_getLink} linkPress={_linkPress} isLoad={isLoad}/>
-        </BottomSheet>    
-        </ScrollView>
+        </BottomSheet>  
         </GestureHandlerRootView>
     )
 }

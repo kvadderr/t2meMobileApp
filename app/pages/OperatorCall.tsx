@@ -35,6 +35,7 @@ const OperatorCall = ({route}) => {
     const [message, setMessage] = useState(''); // Message to the user
     const [isConfirm, setIsConfirm] = useState(false);
     const [connect, setConnect] = useState('false');
+    const [customBonus, setBonus] = useState(0);
 
     const [timeLeft, setTimeLeft] = useState(0);    
     const minutes = getPadTime(Math.floor(timeLeft/60));
@@ -90,9 +91,10 @@ const OperatorCall = ({route}) => {
         socket.on("timerUpdate", function(data) {
             setTimeLeft(data.timer);
             setBalance(data.currentBalance);
+            setBonus(data.currentBonus);
         });
 
-        socket.on("connectionClose", function() {
+        socket.on("callEnding", function() {
             leave();
             if (navigation.canGoBack()) {
                 navigation.goBack();
@@ -110,9 +112,11 @@ const OperatorCall = ({route}) => {
             opponentId: opponentId,
             clientId: opponentId,
             operatorId: USER_ID,
-            duration: timeLeft
+            duration: timeLeft,
+            currentBalance: balance,
+            currentBonus: customBonus,
         }
-        socket.emit('connectionClose', data);
+        socket.emit('callEnding', data);
         navigation.goBack();
     }
 

@@ -19,21 +19,18 @@ const Tips = ({route}) => {
 
     const { user } = useSelector(state => state.userReducer);
     
+    console.log('adadad', user);
 
-    const clientId = user.id;
 
     _sendTips = (balance) => {
-
         const data = {
-            clientId: clientId,
+            clientId: user.id,
             operatorId: callData.operatorId,
             balance: balance
         };
-        user.balance = user.balance - balance;
-        dispatch(setUser(user));
         socket.emit('tips', data);
         navigation.navigate('Client')
-        console.log('adadad');
+        
     }
 
     return (

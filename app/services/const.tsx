@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
-export const socket = io.connect("http://192.168.230.8:4000/");
-export const BACKEND_URL = 'http://192.168.230.8:4000/';
+export const socket = io.connect("http://95.213.216.132:4000/");
+export const BACKEND_URL = 'http://95.213.216.132:4000/';
 export const Images = {
     menus: [
         require('../../assets/img.png'),

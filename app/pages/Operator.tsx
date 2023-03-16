@@ -1,24 +1,85 @@
 //import react base 
-import { useState, useEffect } from 'react';
-import { Text, View, Button, StyleSheet, Image } from 'react-native'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Text, View, Button, StyleSheet, Image, FlatList, ScrollView } from 'react-native'
 
 //Import downloaded package
 import { useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSelector, useDispatch } from 'react-redux';
 import SwitchSelector from "react-native-switch-selector";
 
 //import custom components
-import Header from '../components/Header'
 import { DefaultButton, SimpleButton } from '../components/Button';
+import { Withdrawal } from '../components/BSComponent'
+import BottomSheet from '../components/BottomSheet';
+import Header from '../components/Header'
 import Alert from '../components/Alert';
+import { StatisticCard } from '../components/Card';
 
 //import custom services
-import { socket } from '../services/const'
+import { socket, BACKEND_URL } from '../services/const'
 
 const Operator = () => {
 
     //Custom service
     const navigation = useNavigation();
+    const dispatch = useDispatch();
+    const { user } = useSelector(state => state.userReducer);
+    const [operStat, setOperStat] = useState({});
+    console.log('STAT DATA', operStat);
+
+    const ref = useRef<BottomSheetModal>(null);
+    const WithdrawalPresentModalPress = useCallback( () => {
+        ref.current?.present();
+    }, [] );
+
+    const stat = [
+        {
+            title: 'Average rating',
+            value: operStat.avgRaitConst
+        },
+        {
+            title: 'Place of rating',
+            value: '-'
+        },
+        {
+            title: 'Added to favorites',
+            value: operStat.favoriteCountConst
+        },
+        {
+            title: 'Call for today',
+            value: operStat.callForTodayCount
+        },
+        {
+            title: 'Call for week',
+            value: operStat.callForWeekConst
+        },
+        {
+            title: 'Call for month',
+            value: operStat.callForMonthConst
+        },
+        {
+            title: 'Amount of money earned',
+            value: operStat.moneyConst
+        },
+
+    ]
+
+    const renderItem = ({ item }) => {
+        return (
+             <StatisticCard value={item.value} title={item.title}/>
+        );
+    };
+
+    const getOperStat = async () => {
+        try {
+            const response = await fetch(BACKEND_URL + 'analytics/operatorStat/'+user.id);
+            const json = await response.json();
+            setOperStat(json);
+        } catch (error) {
+          console.error(error);
+        }
+    }
 
     //Custom data
     const options = [
@@ -30,8 +91,32 @@ const Operator = () => {
 
     _goToCall = () => {
         setCalling(false);
-        socket.emit('connectionConfirmation', callData);
+        socket.emit('callConfirmation', callData);
         navigation.navigate('OperatorCall', callData);
+    }
+
+    _rejectCall = () => {
+        setCalling(false);
+        socket.emit('dropCall', callData);
+    }
+
+    _sendRequestToWithdrawal = async () => {
+        try {
+            const response = await fetch(BACKEND_URL + 'withdrawals', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                body: JSON.stringify({
+                    status: 'PROCESS',
+                    userId: user.id
+                }),
+            });
+            ref.current?.close();
+        } catch (error) {
+          console.error(error);
+        }
     }
 
     //lock go to back
@@ -40,17 +125,21 @@ const Operator = () => {
             e.preventDefault();
         });
 
-        socket.on("connectionRequest", function(data) {
+        getOperStat();
+
+        socket.on("callRequest", function(data) {
 
             const someData = {
                 FIO: data.clientFIO,
                 channelName: data.channelName,
                 token: data.token,
+                balance: data.balance,
+                bonus: data.bonus,
                 user: {
                     avatar: data.clientAvatar,
                     id: data.clientId,
                 },
-                operatorId: data.operatorId,
+                operatorId: user.id,
                 clientId: data.clientId
             }
             
@@ -58,14 +147,19 @@ const Operator = () => {
             setCalling(true);
         });
 
+        socket.on("dropCall", function(data) {
+            setCalling(false)
+        })
+
     }, [])
 
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <ScrollView
+        contentInsetAdjustmentBehavior="automatic">
         <View style={styles.container}>
 
-            <Header/>
+            <Header onPress={WithdrawalPresentModalPress}/>
             
             <SwitchSelector
                 style={styles.switch}
@@ -73,6 +167,17 @@ const Operator = () => {
                 initial={0}
                 buttonColor={'#038E11'}
                 animationDuration={200}
+                onPress={value => {
+                    if (value === 'OFFLINE') socket.emit('offlineStatus', user.id);
+                    if (value === 'ONLINE') socket.emit('onlineStatus', user.id);
+                }}
+            />
+
+            <FlatList
+                data={stat}
+                keyExtractor={item => "_" + item.id}
+                numColumns={2}
+                renderItem={renderItem}
             />
 
             <Alert visible={calling}>
@@ -86,13 +191,16 @@ const Operator = () => {
                     {callData.FIO}
                 </Text>
                 <View style={styles.twoColumn}> 
-                    <SimpleButton text={'Reject'} onPress={() => setCalling(false)}/>
+                    <SimpleButton text={'Reject'} onPress={_rejectCall}/>
                     <DefaultButton text={'Accept'} onPress={_goToCall}/>
                 </View>
             </Alert>
+            <BottomSheet ref={ref}>
+                <Withdrawal onPress ={_sendRequestToWithdrawal}/>
+            </BottomSheet>
 
         </View>
-        </GestureHandlerRootView>
+        </ScrollView>
     
     )
 }

@@ -30,14 +30,29 @@ const OperatorList = () => {
 
     const [operator, setOperator] = useState([]);
     const [filteredData, setFilteredData] = useState([]);
+    const [loadOperator, setLoadOperator] = useState(false);
 
     useEffect(() => {
-        operator.map( item => {
-            if (onlineOperatorList.includes(item.userId)) {
-                item.status = 'Online';
-            }
-        })
+        _updateOperatorStatus();
+        console.log(onlineOperatorList);
     }, [onlineOperatorList])
+
+    _updateOperatorStatus = () => {
+        const newStateArray = [];
+        operator.map( item => {
+            item.status = 'Offline'
+            Object.keys(onlineOperatorList).forEach(element => {
+                if (onlineOperatorList[element].userId == item.userId) {
+                    item.status = onlineOperatorList[element].status
+                } else {
+                    console.log('noooo')
+                    item.status = 'Offline'
+                }
+            });
+            newStateArray.push(item);
+        })
+        setOperator(newStateArray)
+    }
 
     const [FIO, setFIO] = useState();
 
@@ -45,8 +60,13 @@ const OperatorList = () => {
 
     }
 
-    useEffect( () => {
+    useEffect(()=>{
+        console.log('loadedEMITTER');
+        socket.emit('sendMeList', {"userId": user.id});
+    }, [loadOperator])
 
+    useEffect( () => {
+        console.log('UPDATED');
         if(FIO) {
             const newData = operator.filter((item) => {
                 const itemData = item.user.FIO ? item.user.FIO.toUpperCase() : ''.toUpperCase();
@@ -62,7 +82,6 @@ const OperatorList = () => {
 
     useEffect(() => {
         getOperators();
-        socket.emit('sendMeList', {"userId": user.id});
     }, [])
 
     const getOperators = async () => {
@@ -71,6 +90,7 @@ const OperatorList = () => {
             const json = await response.json();
             setOperator(json);
             setFilteredData(json);
+            setLoadOperator(true);
         } catch (error) {
           console.error(error);
         }

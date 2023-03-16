@@ -4,7 +4,9 @@ import { Image, StyleSheet, Text, View, ScrollView, TouchableWithoutFeedback } f
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNavigation } from "@react-navigation/native";
 import { useSelector, useDispatch } from 'react-redux';
+import { SharedElement } from 'react-navigation-shared-element';
 import Lottie from 'lottie-react-native';
+import Sound from 'react-native-sound';
 
 //import custom component
 import { MenuList } from '../components/List';
@@ -26,6 +28,8 @@ import { StarSVG } from '../icons/star';
 import { DocumentSVG } from '../icons/document'
 import { FlashSVG } from '../icons/flash';
 import { RightArrowSVG } from '../icons/rightArrow'
+import { MusicSVG } from '../icons/music'
+import { InfoSVG } from '../icons/info'
  
 const OperatorPage = ({route}) => {
 
@@ -41,12 +45,14 @@ const OperatorPage = ({route}) => {
     const [operatorGrade, setOperatorGrade] = useState();
     const [comment, setComment] = useState('');
     const [alert, showAlert] = useState(false);
+    const [music, setMusic] = useState(null);
+    const [audioPlay, setAudioPlay] = useState(false);
+    const [specialization, setSpecialization] = useState('');
 
     //bottom sheet data
     const ref = useRef<BottomSheetModal>(null);
     const ref2 = useRef<BottomSheetModal>(null);
     const ref3 = useRef<BottomSheetModal>(null);
-
     const DetailPresentModalPress = useCallback( () => {
         ref.current?.present();
     }, [] );
@@ -61,6 +67,23 @@ const OperatorPage = ({route}) => {
 
     //functions
 
+    _play =  async () => {        
+        setAudioPlay(true);
+        console.log('press play')
+        music.play();
+    }
+
+    _stop = async() => {
+        setAudioPlay(false)
+        console.log(music)
+        music.stop();
+    }
+
+    const ListenAudio = () => {
+        console.log(audioPlay)
+        audioPlay ? _stop() : _play()
+    }
+
     useEffect( () => {
         if (favorite.length > 0 && favorite.filter(value => value.id === profile.id).length > 0) {
             setIsFavorite(true);
@@ -68,7 +91,34 @@ const OperatorPage = ({route}) => {
         
         _getOperatorReview();
         _getOperatorGrade();
+        _initSound();
+        
+        let specializationArray = []
+        profile.specializations.map( item => {
+            specializationArray.push(item.name);
+            
+        })
+        console.log('profilePRO', profile.specializations)
+        setSpecialization(specializationArray.join(' / '))
+        
     }, [])
+
+    _initSound = async() => {
+        let summer = await new Sound(profile.audio, '',(err, _sound) => {
+            if (err) {
+                console.log('ga', err);
+                return;
+            }
+            summer.play((success) => {
+                summer.release();
+                console.log('end', success)
+            })
+            summer.stop(() => {
+                summer.stop();
+            })
+        })
+        setMusic(summer);
+    }
 
     _getOperatorReview = async() => {
         try {
@@ -80,7 +130,7 @@ const OperatorPage = ({route}) => {
         }
     }
 
-    _getOperatorGrade =async () => {
+    _getOperatorGrade = async () => {
         try {
             const response = await fetch(BACKEND_URL+'review/grade/'+profile.user.id);
             const json = await response.json();
@@ -92,14 +142,43 @@ const OperatorPage = ({route}) => {
         }
     }
 
+    _addFavorite = async () => {
+        try 
+        {
+            const response = await fetch(BACKEND_URL + 'favorite', {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, operatorId: profile.id }),
+            });
+            console.log('ADD FAVORITE!', profile.id)
+        } catch (error) {
+            console.log(error)
+        }
+    };
+
+    _deleteFavorite = async () => {
+        try 
+        {
+            const response = await fetch(BACKEND_URL + 'favorite', {
+                method: 'DELETE',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, operatorId: profile.id }),
+            });
+        } catch (error) {
+            console.log(error)
+        }
+    };
+
     _setFavorite = () => {
 
         if (isFavorite) { 
             favRemoved = favorite.filter(value => value.id !== profile.id)
-            dispatch(setFavorite(favRemoved));
+            dispatch(setFavorite(favRemoved));            
+            _deleteFavorite();
         } else {
             favorite.push(profile)
             dispatch(setFavorite(favorite));
+            _addFavorite();
         }
 
         setIsFavorite(!isFavorite);
@@ -116,7 +195,7 @@ const OperatorPage = ({route}) => {
     _addReview = () => {
         const data = {
             client: {
-                FIO: user.FIO
+                nickname: user.nickname
             },
             review: comment
         }
@@ -156,15 +235,20 @@ const OperatorPage = ({route}) => {
                 <LeftArrowSVG onPress={_goBack}/>
                 {isFavorite ? <FavoriteActiveSVG onPress={_setFavorite}/> : <FavoriteSVG onPress={_setFavorite}/>}
             </View>
-            <Image 
-                source={{
-                    uri: profile.user.avatar
-                }}
-                style={styles.operatorAvatar}
-            />
+            <SharedElement id={`trip.${profile.user.avatar}.image`}>
+                <Image 
+                    source={{
+                        uri: profile.user.avatar
+                    }}
+                    style={styles.operatorAvatar}
+                />
+            </SharedElement>
             <View style={styles.container}>
-                <Text style={styles.data}>Asmr / Couch</Text>
-                <Text style={styles.fioText}>{profile.user.FIO}</Text>
+                <View style={styles.aboutBlock}>
+                    <Text style={styles.data}>{specialization}</Text>
+                    <InfoSVG/>
+                </View>
+                <Text style={styles.fioText}>{profile.user.nickname}</Text>
                 <View style={styles.aboutBlock}>
                     <View style={styles.aboutItem}>
                         <StarSVG/>
@@ -184,6 +268,10 @@ const OperatorPage = ({route}) => {
                     <Text style={styles.briefText}>{profile.brief}</Text>
                 </View>
 
+                { 
+                    profile.audio ?
+                    <MenuList onPress={ListenAudio} text="Listen to the operator's voice" icon={<MusicSVG/>}/> : null
+                }
                 <MenuList onPress={DetailPresentModalPress} text="More details" icon={<BookmarkSVG/>} secondIcon={<RightArrowSVG/>}/>
                 <MenuList onPress={ReviewPresentModalPress} text="Reviews" icon={<DocumentSVG/>} secondIcon={<RightArrowSVG/>}/>
                 <MenuList onPress={FeedbackPresentModalPress} text="Give feedback" icon={<BookmarkSVG/>} secondIcon={<RightArrowSVG/>}/>
@@ -193,7 +281,12 @@ const OperatorPage = ({route}) => {
                         <Text style={styles.fioText}>$ {profile.price}</Text>
                         <Text style={styles.thirdText}>per minutes</Text>    
                     </View>
-                    <DefaultButton text={'Call'} onPress={_goToCall}/>
+                    {
+                        profile.status === 'Online' ? 
+                        <DefaultButton text={'Call'} onPress={_goToCall}/> :
+                        null
+                    }
+                    
                 </View>
             </View>
             <BottomSheet ref={ref}>
@@ -231,7 +324,7 @@ const styles = StyleSheet.create({
     operatorAvatar: {
         width: 180, 
         height: 180, 
-        borderRadius: 400/2,
+        borderRadius: 180/2,
         marginTop: -20,
         marginLeft: 'auto',
         marginRight: 'auto' 
@@ -296,5 +389,6 @@ const styles = StyleSheet.create({
     },
 
 })
+
 
 export default OperatorPage;

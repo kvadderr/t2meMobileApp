@@ -1,5 +1,5 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
 import { Store } from '../redux/store';
@@ -15,7 +15,10 @@ export const Router = () => {
 
   console.log('authData', authData)
   if (loading) {
-    return <Loading />;
+    return 
+    <Provider store={Store}>
+      <Loading />
+    </Provider>
   }
   return (
     <Provider store={Store}>

@@ -90,7 +90,7 @@ const Call = ({route}) => {
                 "balance": user.balance,
                 "price": callData.price
             }
-            socket.emit('connectionRequest', dataToSendFromClientToOperator);
+            socket.emit('callRequest', dataToSendFromClientToOperator);
         } else {
             console.log('ARARARARARA', callData);
             setCurrentClientId(callData.user.id);
@@ -103,7 +103,7 @@ const Call = ({route}) => {
             navigation.goBack();
         });
 
-        socket.on("connectionConfirmation", function(data) {
+        socket.on("callConfirmation", function(data) {
             setToken(data.token);
             setChannelName(data.channelName);
             

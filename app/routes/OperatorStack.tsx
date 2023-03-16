@@ -1,30 +1,40 @@
 import React, {useEffect} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createSharedElementStackNavigator} from 'react-navigation-shared-element';
 import PassCode from '../pages/Passcode';
 import Operator from '../pages/Operator';
 import Call from '../pages/Call';
 import Settings from '../pages/Settings';
 import OperatorCall from '../pages/OperatorCall';
 import CallHistory from '../pages/CallHistory';
+import Notification from '../pages/Notification';
 
 import { useSelector, useDispatch } from 'react-redux';
 
 import { socket } from '../services/const'
-import { setUser } from '../redux/actions'
+import { setBalance, setBonus } from '../redux/actions'
 
-const Stack = createNativeStackNavigator();
+const Stack = createSharedElementStackNavigator();
 
 export const OperatorStack = () => {
 
   const dispatch = useDispatch();
-  const { user } = useSelector(state => state.userReducer);
 
   useEffect( () => {
+
     socket.on("updateBalance", function (data) {
-      console.log('WINWINWI', data)
-      user.balance = data;
-      dispatch(setUser(user));
+      dispatch(setBalance(data));
     })
+
+    socket.on("updateBonus", function (data) {
+      console.log('UPDATE BONUS', data)
+      dispatch(setBonus(data));
+    })
+
+    socket.on("listOnlineUser", function (data) {
+      console.log('listOnlineUser getting')
+      dispatch(setOnlineOperatorList(data));
+    });
 
   }, [])
 
@@ -37,6 +47,7 @@ export const OperatorStack = () => {
       <Stack.Screen name="OperatorCall" component={OperatorCall} />
       <Stack.Screen name="Settings" component={Settings} />
       <Stack.Screen name="CallHistory" component={CallHistory} />   
+      <Stack.Screen name="Notification" component={Notification} />  
     </Stack.Navigator>
   );
 };

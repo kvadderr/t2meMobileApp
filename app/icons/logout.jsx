@@ -9,8 +9,8 @@ export const LogoutSVG = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     {...props}
   >
-    <Path d="M3 12H15" stroke="black" strokeLinejoin="round" />
-    <Path d="M11.5 8.5L15 12L11.5 15.5" stroke="black" strokeLinejoin="round" />
-    <Path d="M9 17V20H21V4H9V7" stroke="black" strokeLinejoin="round" />
+    <Path d="M3 12H15" stroke="#919191" strokeLinejoin="round" />
+    <Path d="M11.5 8.5L15 12L11.5 15.5" stroke="#919191" strokeLinejoin="round" />
+    <Path d="M9 17V20H21V4H9V7" stroke="#919191" strokeLinejoin="round" />
   </Svg>
 );

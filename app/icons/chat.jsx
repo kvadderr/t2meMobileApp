@@ -11,11 +11,11 @@ export const ChatSVG = (props) => (
   >
     <Path
       d="M3 6C3 4.89543 3.89543 4 5 4H19C20.1046 4 21 4.89543 21 6V17V20L16.5 17H5C3.89543 17 3 16.1046 3 15V6Z"
-      stroke="black"
+      stroke="#919191"
       strokeLinejoin="round"
     />
-    <Circle cx={7} cy={10.5} r={1} stroke="black" strokeLinejoin="round" />
-    <Circle cx={12} cy={10.5} r={1} stroke="black" strokeLinejoin="round" />
-    <Circle cx={17} cy={10.5} r={1} stroke="black" strokeLinejoin="round" />
+    <Circle cx={7} cy={10.5} r={1} stroke="#919191" strokeLinejoin="round" />
+    <Circle cx={12} cy={10.5} r={1} stroke="#919191" strokeLinejoin="round" />
+    <Circle cx={17} cy={10.5} r={1} stroke="#919191" strokeLinejoin="round" />
   </Svg>
 );

@@ -52,7 +52,7 @@ const AuthProvider: React.FC = ({children}) => {
       login,
       pass,
     );
-
+      console.log('ALALAAL', _authData);
     //Set the data in the context, so the App can be notified
     //and send the user to the AuthStack
     setAuthData(_authData);

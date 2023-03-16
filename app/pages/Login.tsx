@@ -33,6 +33,7 @@ const Login = () => {
     const [roleData, setRoleData] = useState('CLIENT');
     const [FIOData, setFIOData] = useState('');
     const [alert, showAlert] = useState(false);
+    const [referral, setReferral] = useState('');
 
     const options = [
         { label: "I'm client", value: "CLIENT" },
@@ -54,6 +55,7 @@ const Login = () => {
 
     //Custom function
     const signIn = async () => {
+        console.log('signin');
         await auth.signIn(loginData, passwordData);
     };
 
@@ -78,7 +80,7 @@ const Login = () => {
 
     _register = async () => {
         try {
-            const response = await fetch(BACKEND_URL + 'auth/signup', {
+            const response = await fetch(BACKEND_URL + 'auth/register', {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -87,8 +89,9 @@ const Login = () => {
                 body: JSON.stringify({
                     login: loginData,
                     password: passwordData,
-                    FIO: FIOData,
-                    role: roleData
+                    nickname: FIOData,
+                    role: roleData,
+                    referral: referral
                 }),
             });
             showAlert(true);
@@ -117,10 +120,12 @@ const Login = () => {
             <View style={styles.twoColumn}>
                 <SimpleButton text={'Forgot password'} onPress={ForgotPasswordPresentModalPress}/>
                 <DefaultButton text={'Login'} onPress={signIn}/>
-            </View>
-            <View style={styles.footer}>
                 <SimpleButton text={'Register'} onPress={RegisterPresentModalPress}/>
-            </View>   
+            </View>
+            
+            <View style={styles.footer}>
+               
+            </View>
         </View>
         </ScrollView>
         <BottomSheet ref={ref}>
@@ -133,6 +138,8 @@ const Login = () => {
                 setPassword={setPasswordData}
                 FIO={FIOData}
                 setFIO={setFIOData}
+                referral={referral}
+                setReferral={setReferral}
                 onPress={_register}/>
         </BottomSheet>
         <BottomSheet ref={ref2}>
@@ -178,7 +185,7 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute',
         alignItems:'center',
-        bottom: 50,
+        bottom: 150,
         left: 0,
         right: 0,
     }

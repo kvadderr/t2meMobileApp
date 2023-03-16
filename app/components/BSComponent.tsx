@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native'
 import { DefaultInput, MultiInput, NumericInput } from './Input'
 import { DefaultButton, SimpleButton } from './Button'
 import SwitchSelector from "react-native-switch-selector";
@@ -95,13 +95,7 @@ export const Payment = (props) => {
             <Text style={styles.headerText}>Payment</Text>
             <DefaultList title="About process" detail="Enter the desired value and follow the link to make a payment" />
             <View style={{paddingTop: 40}}>
-                <NumericInput placeholder='Amount' text={props.amount} setText={props.setAmount}/>
-                <DefaultButton text={'Generate link'} onPress={props.onPress} />
-            </View>
-            <View style={{paddingTop: 40}}>
-                {
-                    props.isLoad ? <SimpleButton text={'Go to payment system'} onPress={props.linkPress} /> : ''
-                }
+            <SimpleButton text={'Go to payment system'} onPress={props.linkPress} /> 
             </View>
         </View>
     );
@@ -140,6 +134,7 @@ export const Register = (props) => {
                 <DefaultInput placeholder='Full name' text={props.FIO} setText={props.setFIO}/>
                 <DefaultInput placeholder='E-mail' text={props.loginData} setText={props.setLoginData}/>
                 <DefaultInput placeholder='Password' text={props.password} setText={props.setPassword}/>
+                <DefaultInput placeholder='Referral code' text={props.referral} setText={props.setReferral}/>
             </View>
             <DefaultButton text={'Confirm data'} onPress={props.onPress}/>
         </View>
@@ -147,16 +142,21 @@ export const Register = (props) => {
 
 }
 
-export const FAQ = () => {
+export const FAQ = (props) => {
     return (
         <View style={styles.container}>
             <Text style={styles.headerText}>FAQ</Text>
-            <DefaultList title="adadada" detail="detaildetaildetail" />
-            <DefaultList title="adadada" detail="detaildetaildetail" />
-            <DefaultList title="adadada" detail="detaildetaildetail" />
-            <DefaultList title="adadada" detail="detaildetaildetail" />
-            <DefaultList title="adadada" detail="detaildetaildetail" />
-            <DefaultList title="adadada" detail="detaildetaildetail" />
+            {
+                props.faq.map( item => {
+                    return <DefaultList title={item.title} detail={item.detail} key={item.id}/>
+                })
+            }
+            <TouchableWithoutFeedback onPress={props.link}>
+            <View style={styles.created}>
+                <Text style={styles.createdHeaderText}>Created by</Text>
+                <Text style={styles.createdMainText}>SUMBEMBAYEV BAKYTBEK</Text>
+            </View>
+            </TouchableWithoutFeedback>
         </View>
     )
 };
@@ -168,7 +168,7 @@ export const Reviews = (props) => {
 
             {
                 props.reviews.map( item => {
-                    return <DefaultList title={item.client.FIO} detail={item.review} key={item.id}/>
+                    return <DefaultList title={item.client.nickname} detail={item.review} key={item.id}/>
                 })
             }
 
@@ -197,14 +197,7 @@ export const Filter = (props) => {
         <View style={styles.container}>
             <Text style={styles.headerText}>Use filter</Text>
             <DefaultInput placeholder='Full name' text={props.FIO} setText={props.setFIO}/>
-            <SwitchSelector
-                style={styles.switch}
-                options={options}
-                initial={0}
-                buttonColor={'#038E11'}
-                animationDuration={200}
-            />
-            <DefaultButton text={'Clear filter'} onPress={props.onPress}/>
+            
         </View>
     )
 }
@@ -252,6 +245,16 @@ export const Support = (props) => {
     )
 }
 
+export const Withdrawal = (props) => {
+    return (
+        <View style={styles.container}>
+            <Text style={styles.headerText}>Withdrawal</Text>
+            <DefaultList title="" detail="Some detail data about withdrawal" />
+            <DefaultButton text={'Submit a withdrawal request'} onPress={props.onPress}/>
+        </View>
+    )
+}
+
 const styles = StyleSheet.create({
 
     container: {
@@ -271,6 +274,24 @@ const styles = StyleSheet.create({
         paddingTop:20,
         paddingBottom: 40,
         flex: 1,
-    }
+    },
+
+    created: {
+        paddingTop: 40,
+        paddingBottom: 80,
+    },
+
+    createdMainText: {
+        fontFamily: 'Qanelas-Regular',
+        fontSize: 14,
+        color: 'gray',
+        textDecorationLine: 'underline'
+    },
+
+    createdHeaderText: {
+        fontFamily: 'Qanelas-Regular',
+        fontSize: 12,
+        color: 'gray',
+    },
 })
 

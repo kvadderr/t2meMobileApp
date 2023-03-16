@@ -9,9 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 //import custom service
 import { useAuth } from '../context/Auth'
-import { setUser } from '../redux/actions'
+import { setUser, setBalance, setBonus } from '../redux/actions'
 import { socket } from '../services/const'
 import { BACKEND_URL } from '../services/const';
+import { setFavorite } from '../redux/actions';
 
 //import custom components
 import { CodeButton, SimpleButton } from '../components/Button'
@@ -22,6 +23,7 @@ const PassCode = () => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const auth = useAuth();
+    const { favorite } = useSelector(state => state.userReducer);
 
     //Custom data    
     const [passCode, setPassCode] = useState();
@@ -40,6 +42,8 @@ const PassCode = () => {
         { id : 0 } 
     ];
 
+
+
     useEffect (() => {
         const currentCode = code.join('');
         
@@ -52,6 +56,12 @@ const PassCode = () => {
             if (auth.authData.role === 'OPERATOR') navigation.navigate('Operator');
         }
 
+        if (currentCode.length === 4) {
+            AsyncStorage.setItem('code', currentCode);
+            if (auth.authData.role === 'CLIENT') navigation.navigate('Client');
+            if (auth.authData.role === 'OPERATOR') navigation.navigate('Operator');
+        }
+
         if (currentCode === passCode) {
             if (auth.authData.role === 'CLIENT') navigation.navigate('Client');
             if (auth.authData.role === 'OPERATOR') navigation.navigate('Operator');
@@ -59,9 +69,11 @@ const PassCode = () => {
     }, [check])
 
     useEffect ( () => {
+        console.log('JOIN TO SOCKET');
         socket.emit('join', {"userId": auth.authData.userId});
-        _loadUserData();
         _loadPassCode();
+        _getFavList();
+        _loadUserData();
     }, [])
 
 
@@ -70,11 +82,25 @@ const PassCode = () => {
         setPassCode(pass);
     }
 
+    _getFavList = async () => {
+        const response = await fetch(BACKEND_URL + 'favorite/'+auth.authData.userId);
+        const json = await response.json();
+        json.map(item => {
+            favorite.push(item.operator);            
+            console.log('LOAD FAV',item.operator);
+        })
+        
+        dispatch(setFavorite(favorite));
+        
+    }
+
     //Custom function
     _loadUserData = async () => {
         const response = await fetch(BACKEND_URL + 'user/'+auth.authData.userId);
         const json = await response.json();
         dispatch(setUser(json));
+        dispatch(setBalance(json.balance));
+        dispatch(setBonus(json.bonus));
     } 
 
     _onPressNumber = num => {

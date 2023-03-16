@@ -7,11 +7,11 @@ export type AuthData = {
   };
 
   const signIn = (_login: string, _password: string): Promise<AuthData> => {
-
+    console.log(_login, _password);
     return new Promise((resolve, reject) => {
         async function sign() {
             const response = await fetch(
-                BACKEND_URL+'auth/signin',{
+                BACKEND_URL+'auth/login',{
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
@@ -23,9 +23,9 @@ export type AuthData = {
                     }),
                 }
             );
-
             if (response.ok) {
                 const json = await response.json();
+                console.log('json', json)
                 const data = {
                     userId: json.id,
                     role: json.role,

@@ -7,6 +7,12 @@ import { useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSelector, useDispatch } from 'react-redux';
 import { launchImageLibrary } from 'react-native-image-picker';
+import DocumentPicker, {
+    DirectoryPickerResponse,
+    DocumentPickerResponse,
+    isInProgress,
+    types,
+  } from 'react-native-document-picker'
 
 //import custom components
 import BottomSheet from '../components/BottomSheet';
@@ -25,7 +31,8 @@ import { TrashSVG } from '../icons/trash';
 import { LogoutSVG } from '../icons/logout';
 import { UploadSVG } from '../icons/upload';
 import { ChatSVG } from '../icons/chat';
-
+import { MusicSVG } from '../icons/music';
+import { InfoSVG } from '../icons/info';
 
 //import custom services
 import { setUser } from '../redux/actions'
@@ -57,21 +64,38 @@ const Settings = () => {
     const [goals, setGoals] = useState();
     const [code, setCode] = useState();
     const [confirmCode, setConfirmCode] = useState();
+    const [referralCode, setReferralCode] = useState(null);
     
     const [name, setName] = useState();
     const [password, setPassword] = useState();
     const [years, setYears] = useState();
 
+    const [result, setResult] = useState<Array<DocumentPickerResponse> | DirectoryPickerResponse | undefined | null>()
+
+  const handleError = (err: unknown) => {
+    if (DocumentPicker.isCancel(err)) {
+      console.warn('cancelled')
+      // User cancelled the picker, exit any dialogs or menus and move on
+    } else if (isInProgress(err)) {
+      console.warn('multiple pickers were opened, only the last will be considered')
+    } else {
+      throw err
+    }
+  }
+
     //save data to local
     useEffect( () => {
-        setName(user.FIO);
+        setName(user.nickname);
         setPassword(user.password);
         setYears(user.birth);
+        if (user.role === 'CLIENT') _getReferralCode();
     }, [])
+
+    
 
     //bottom sheet data
     const ref = useRef<BottomSheetModal>(null);
-
+    console.log('settings user', user);
     const ref1PresentModalPress = useCallback( () => {
         ref.current?.present();
     }, [] );
@@ -105,9 +129,11 @@ const Settings = () => {
 
 
     _checkCode = () => {
-        sheetRef4.current?.close();
+        console.log('code', code)
+        console.log('confirmCode', confirmCode)
+        ref4.current?.close();
         if (code == confirmCode) {
-            confirmMail();
+            _confirmMail();
             user.isSuccessful = true;
             dispatch(setUser(user));
         } 
@@ -135,7 +161,7 @@ const Settings = () => {
     _saveProfileData = async () => {
 
         let newUser = user;
-        newUser.FIO = name;
+        newUser.nickname = name;
         newUser.birth = years;
         
         dispatch(setUser(newUser));
@@ -192,15 +218,16 @@ const Settings = () => {
         ref3.current?.close();
 
         try {
-            const response = await fetch(BACKEND_URL+'auth/ban',{
+            const response = await fetch(BACKEND_URL+'user/ban',{
                   method: 'POST',
                   headers: {
                       Accept: 'application/json',
                       'Content-Type': 'application/json',
                     },
                   body: JSON.stringify({
-                      login: user.login,
-                      cause: 'Профиль удален'
+                      id: user.id,
+                      isBanned: 1,
+                      banCause: 'Профиль удален'
                   }),
               }
             );
@@ -210,6 +237,26 @@ const Settings = () => {
           }catch (error) {
             console.log(error)
           }
+    }
+
+    _importAudio = async() => {
+        DocumentPicker.pick({
+            type: types.audio,
+          })
+            .then(setResult)
+            .catch(handleError)
+        console.log('result', result)
+    }
+
+    _getReferralCode = async () => {
+        try {
+            const response = await fetch(BACKEND_URL+'client/'+user.id);
+            const json = await response.json();
+            console.log('json', json)
+            setReferralCode(json.referralCode)
+        } catch (error) {
+          console.error('error', error);
+        }
     }
 
     _importImage = async() => {
@@ -246,6 +293,46 @@ const Settings = () => {
 
     }
    
+    useEffect(() => {
+        _sendAudio();        
+    }, [result])
+
+    _sendAudio = async () => {
+        console.log(JSON.stringify(result, null, 2))
+        const formData = new FormData()
+        let uri = null;
+        let type= null;
+        let name = null;
+        result.map(item => {
+            uri = item.uri;
+            type = item.type;
+            name = item.name;
+        })
+        
+        formData.append('file', {
+            uri: uri,
+            type: type,
+            name: name
+        });
+        console.log('formDATA')
+        let res = await fetch(BACKEND_URL+'operator/uploadAudio', 
+            { 
+                method: 'POST',
+                headers: {'Content-Type': 'multipart/form-data'},
+                body: formData 
+            });
+        let responseJSON = await res.json();
+        console.log('responseJSON', responseJSON);
+        const newUri = BACKEND_URL + responseJSON.fileName;
+        let res2 = await fetch(BACKEND_URL + 'operator/updateAudio', 
+            { 
+                method: 'POST',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, filename: newUri }),
+            });
+        let responseJSON2 = await res2.json();
+        console.log('responseJSON2', responseJSON2);
+    }
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -263,10 +350,12 @@ const Settings = () => {
         />
         <View style={styles.container}>
             <MenuList onPress={_importImage} text="Load photo" icon={<UploadSVG/>}/>
+            { user.role === 'OPERATOR' ? <MenuList onPress={_importAudio} text="Load audio" icon={<MusicSVG/>}/> : null }
             <MenuList onPress={ref1PresentModalPress} text="Change profile data" icon={<DocumentSVG/>} secondIcon={<RightArrowSVG/>}/>
             { user.role === 'OPERATOR' ? <MenuList onPress={ref2PresentModalPress} text="About me" icon={<DocumentSVG/>} secondIcon={<RightArrowSVG/>} /> : ''}
             { !user.isSuccessful ? <MenuList onPress={ref4PresentModalPress} text="Confirm mail" icon={<ChatSVG/>} secondIcon={<RightArrowSVG/>} /> : ''}
             <MenuList onPress={ref3PresentModalPress} text="Delete this profile" icon={<TrashSVG/> } secondIcon={<RightArrowSVG/>}/>
+            { user.role === 'CLIENT' ? <MenuList text={"Referral code:  " + referralCode} icon={<InfoSVG/>} /> : null }
             <MenuList onPress={_onPressExit}  text="Exit from account" icon={<LogoutSVG/>} />
 
         </View>
@@ -296,6 +385,7 @@ const Settings = () => {
         <BottomSheet ref={ref4}>
             <ConfirmMail
                 code={code} setCode={setCode}
+                userId={user.id} setConfirmCode={setConfirmCode}
                 onPress={_checkCode}
             />
         </BottomSheet> 
